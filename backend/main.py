@@ -39,16 +39,15 @@ app.add_middleware(
 def normalize_url(url: str) -> str:
     parsed = urlparse(url.strip().lower())
 
-    # Ensure scheme is present
     scheme = parsed.scheme or "https"
 
-    # Add www if missing
-    netloc = parsed.netloc or parsed.path
+    # Handle cases like "northlightai.com/page" (missing netloc)
+    netloc = parsed.netloc if parsed.netloc else parsed.path.split('/')[0]
     if not netloc.startswith("www."):
         netloc = "www." + netloc
 
-    # Remove path/query/fragment
-    return urlunparse((scheme, netloc, "", "", "", ""))
+    path = parsed.path if parsed.netloc else '/' + '/'.join(parsed.path.split('/')[1:])
+    return urlunparse((scheme, netloc, path, '', '', ''))
 
 # Scrape webpage
 def scrape(url):
