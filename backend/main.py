@@ -12,7 +12,7 @@ import time
 import google.generativeai as genai
 import os
 from dotenv import load_dotenv
-from supabase_utils import store_chunks, query_top_chunks, supabase, TABLE
+from backend.supabase_utils import store_chunks, query_top_chunks, supabase, TABLE
 
 
 load_dotenv()

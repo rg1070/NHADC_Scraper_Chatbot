@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: webpage-chatbot
+    env: docker
+    plan: free
+    dockerfilePath: ./Dockerfile
+    autoDeploy: true
+    envVars:
+      - key: GOOGLE_API_KEY
+        value: your_google_api_key
+      - key: SUPABASE_URL
+        value: your_supabase_url
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        value: your_service_key
+      - key: SUPABASE_TABLE
+        value: your_table_name
