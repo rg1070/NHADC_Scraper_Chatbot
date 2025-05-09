@@ -40,8 +40,9 @@ def scrape(url):
         # First attempt: static scraping
         response = requests.get(url)
         soup = BeautifulSoup(response.text, 'html.parser')
-        paragraphs = soup.find_all('p')
-        text = ' '.join(p.get_text() for p in paragraphs).strip()
+        text = soup.get_text(separator=' ', strip=True)  # all visible text
+        #paragraphs = soup.find_all('p')
+        #text = ' '.join(p.get_text() for p in paragraphs).strip()
 
         if text:
             return text
@@ -65,6 +66,7 @@ def scrape(url):
 
         return text
     except Exception as e:
+        print(f"Selenium scrape failed: {e}, URL: {url}")
         return ""
 
 # Chunk text
@@ -93,10 +95,16 @@ class QuestionInput(BaseModel):
 @app.post("/add_url")
 async def add_url(data: URLInput):
     text = scrape(data.url)
+    if not text.strip():
+        return {"message": f"🚫 No content found for {data.url}. Nothing was stored."}
+    
     chunks = chunk_text(text)
     embeddings = embed_texts(chunks)
+    if not any(chunks) or not any(embeddings):
+        return {"message": f"🚫 Could not generate valid content or embeddings for {data.url}."}
+
     store_chunks(data.url, chunks, embeddings)
-    return {"message": f"Stored {len(chunks)} chunks from {data.url}"}
+    return {"message": f"✅ Stored {len(chunks)} chunks from {data.url}"}
 
 @app.post("/ask")
 async def ask(data: QuestionInput):

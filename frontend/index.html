@@ -3,161 +3,120 @@
 
 <head>
     <meta charset="UTF-8" />
-    <title>Website Knowledge Chatbot</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>NHADEC Web Chatbot</title>
     <style>
         body {
-            font-family: 'Segoe UI', sans-serif;
-            background: #f5f6fa;
-            margin: 0;
-            padding: 20px;
-            max-width: 900px;
-            margin: auto;
-        }
-
-        .chat-references {
-            background: white;
-            padding: 20px;
-            border-radius: 8px;
-            margin-top: 20px;
-            border: 1px solid #ccc;
-        }
-
-        .chat-box {
-            background: white;
-            margin-top: 20px;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-        }
-
-        .user-entry {
-            background: #d1f0d1;
-            text-align: right;
-            margin-top: 10px;
-            padding: 10px;
-            border-radius: 6px;
-        }
-
-        .bot-entry {
-            background: #e1e9f5;
-            text-align: left;
-            margin-top: 10px;
-            padding: 10px;
-            border-radius: 6px;
+            font-family: sans-serif;
+            max-width: 700px;
+            margin: 0 auto;
+            padding: 1rem;
         }
 
         input,
-        button {
+        button,
+        textarea {
+            padding: 0.5rem;
+            margin-top: 0.5rem;
             width: 100%;
-            padding: 10px;
-            margin: 8px 0;
+        }
+
+        .chat {
+            background: #f4f4f4;
+            padding: 1rem;
+            margin-top: 1rem;
             border-radius: 6px;
-            border: 1px solid #ccc;
         }
 
-        button {
-            background: #4a69bd;
-            color: white;
-            border: none;
-            cursor: pointer;
+        .typing {
+            color: #888;
         }
 
-        button:hover {
-            background: #3b55a1;
+        .message {
+            margin-top: 1rem;
+            color: #333;
         }
 
-        #buttons {
-            display: flex;
-            gap: 10px;
+        .error {
+            color: red;
         }
 
-        #buttons button {
-            flex: 1;
+        .success {
+            color: green;
         }
     </style>
 </head>
 
 <body>
+    <h1>Web Chatbot</h1>
 
-    <h2>🌎 Webpage Knowledge Chatbot</h2>
+    <label for="urlInput">Website URL:</label>
+    <input id="urlInput" placeholder="https://example.com" />
+    <button onclick="submitUrl()">Submit URL</button>
 
-    <input id="url" type="text" placeholder="Enter webpage URL" />
-    <button onclick="addURL()">Add Website</button>
+    <div id="urlStatus" class="message"></div>
 
-    <div class="chat-box">
-        <input id="question" type="text" placeholder="Ask a question..." onkeypress="handleKey(event)" />
-        <div id="buttons">
-            <button onclick="askQuestion()">Ask</button>
-            <button onclick="clearChat()">🧹 Clear Chat</button>
-        </div>
-        <div id="answers"></div>
-    </div>
+    <hr />
 
-    <h3>🔖 Chat References</h3>
-    <div id="site-preview" class="chat-references"></div>
+    <label for="questionInput">Ask a question:</label>
+    <textarea id="questionInput" rows="3" placeholder="Enter your question here..."></textarea>
+    <button onclick="askQuestion()">Ask</button>
+
+    <div id="chatBox" class="chat"></div>
 
     <script>
-        async function addURL() {
-            const url = document.getElementById('url').value;
+        const BACKEND = window.location.origin;
 
-            await fetch('/add_url', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ url })
-            });
+        async function submitUrl() {
+            const url = document.getElementById("urlInput").value.trim();
+            const statusBox = document.getElementById("urlStatus");
+            statusBox.className = "message";
+            statusBox.textContent = "🔄 Scraping website, please wait...";
 
-            const res = await fetch('/get_urls');
-            const data = await res.json();
-            const previewBox = document.getElementById('site-preview');
+            try {
+                const response = await fetch(`${BACKEND}/add_url`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ url })
+                });
 
-            previewBox.innerHTML = "";
-            data.urls.forEach(link => {
-                const linkElement = document.createElement('div');
-                linkElement.style.marginBottom = '8px';
-                linkElement.innerHTML = `<a href="${link}" target="_blank">${link}</a>`;
-                previewBox.appendChild(linkElement);
-            });
+                const result = await response.json();
+                statusBox.textContent = result.message || "Unknown response.";
+                statusBox.className = result.message.startsWith("✅") ? "message success" : "message error";
+            } catch (err) {
+                console.error(err);
+                statusBox.textContent = "❌ Failed to connect to backend.";
+                statusBox.className = "message error";
+            }
         }
 
         async function askQuestion() {
-            const questionInput = document.getElementById('question');
-            const question = questionInput.value;
-            if (!question.trim()) return;
+            const input = document.getElementById("questionInput").value.trim();
+            const chatBox = document.getElementById("chatBox");
+            if (!input) return;
 
-            const userBox = document.createElement('div');
-            userBox.className = 'user-entry';
-            userBox.innerText = '🧑 ' + question;
-            document.getElementById('answers').appendChild(userBox);
+            chatBox.innerHTML += `<p><strong>You:</strong> ${input}</p>`;
+            chatBox.innerHTML += `<p class="typing">🤖 Typing...</p>`;
+            chatBox.scrollTop = chatBox.scrollHeight;
 
-            questionInput.value = "";
+            try {
+                const response = await fetch(`${BACKEND}/ask`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ question: input })
+                });
 
-            const botBox = document.createElement('div');
-            botBox.className = 'bot-entry';
-            botBox.innerText = '🤖 Typing...';
-            document.getElementById('answers').appendChild(botBox);
-
-            const res = await fetch('/ask', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ question })
-            });
-
-            const data = await res.json();
-            botBox.innerText = '🤖 ' + data.answer;
-        }
-
-        function clearChat() {
-            document.getElementById('answers').innerHTML = "";
-        }
-
-        function handleKey(event) {
-            if (event.key === "Enter") {
-                event.preventDefault();
-                askQuestion();
+                const data = await response.json();
+                document.querySelector(".typing").remove();
+                chatBox.innerHTML += `<p><strong>Bot:</strong> ${data.answer || "⚠️ No answer received."}</p>`;
+                chatBox.scrollTop = chatBox.scrollHeight;
+            } catch (err) {
+                console.error(err);
+                document.querySelector(".typing").remove();
+                chatBox.innerHTML += `<p class="error">❌ Error: Unable to contact backend.</p>`;
             }
         }
     </script>
-
 </body>
 
 </html>
