@@ -102,7 +102,7 @@
         async function addURL() {
             const url = document.getElementById('url').value;
 
-            await fetch('http://localhost:8000/add_url', {
+            await fetch('/add_url', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ url })
