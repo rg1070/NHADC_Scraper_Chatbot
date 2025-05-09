@@ -1,66 +1,108 @@
+# 🌐 Webpage Knowledge Chatbot (Deployed)
 
-# 🌎 Webpage Knowledge Chatbot
-
-A professional chatbot web app that allows you to:
-- Scrape a webpage URL
-- Extract and embed the webpage text using **Google Gemini Embedding API**
-- Store the vector embeddings in a **Supabase vector database** (pgvector extension)
-- Chat with an intelligent agent that answers questions based purely on the scraped content
-- View the live webpage inside an `<iframe>` while chatting
+This is a fully functional AI-powered chatbot that lets you scrape any public webpage, embed its content using **Google Gemini**, and ask questions using only that webpage’s content. It’s live at:  
+👉 **[https://nhadc-scraper-chatbot.onrender.com](https://nhadc-scraper-chatbot.onrender.com)**
 
 ---
 
-## 📂 Project Structure
+## ✅ What It Does
+
+- Scrapes **dynamic or static websites** (via BeautifulSoup and Selenium)
+- Extracts visible text and chunks it
+- Embeds the chunks using **Gemini Embedding API**
+- Stores content + embeddings in a **Supabase pgvector** table
+- Uses **Gemini Pro** to answer questions based only on the stored webpage content
+- Avoids duplicate entries by normalizing URLs
+
+---
+
+## 🚀 Live Demo
+
+👉 [https://nhadc-scraper-chatbot.onrender.com](https://nhadc-scraper-chatbot.onrender.com)
+
+---
+
+## 🗂️ Project Structure
 
 ```
 webpage_chatbot/
 ├── backend/
-│   ├── main.py             # FastAPI server: scrape, embed, ask
-│   ├── supabase_utils.py   # Supabase vector insertion and search
-│   ├── requirements.txt    # Backend dependencies
-│   ├── .env                # API keys and secrets (DO NOT COMMIT)
+│   ├── main.py             # FastAPI app: scrape, embed, chat
+│   ├── supabase_utils.py   # Supabase interaction helpers
+│   ├── requirements.txt
+│   └── .env                # (excluded from GitHub)
 │
 ├── frontend/
-│   ├── index.html          # Chatbot User Interface
+│   └── index.html          # Simple, clean chatbot UI
 │
-├── .gitignore
+├── Dockerfile
 ├── README.md
 ```
 
 ---
 
-## ⚙️ Setup Instructions
+## ⚙️ Setup Instructions (Local)
 
-### 1. Clone the Repository
+### 1. Clone the Repo
+
 ```bash
 git clone https://github.com/your-username/webpage_chatbot.git
 cd webpage_chatbot
 ```
 
 ### 2. Install Backend Requirements
+
 ```bash
 cd backend
 pip install -r requirements.txt
 ```
 
-### 3. Setup Environment Variables
+### 3. Setup `.env`
 
-Create a `backend/.env` file:
+Create a file `backend/.env`:
 
 ```env
-GOOGLE_API_KEY=your_gemini_api_key
+GOOGLE_API_KEY=your_gemini_key
 SUPABASE_URL=https://your-project.supabase.co
-SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
+SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role
 SUPABASE_TABLE=web_vectors
 ```
 
-> 🚨 Never share your `.env` publicly.
+### 4. Run Backend
+
+```bash
+uvicorn main:app --host 0.0.0.0 --port 8000
+```
+
+### 5. Open Frontend
+
+Visit `http://localhost:8000` and use the chatbot.
 
 ---
 
-### 4. Create Supabase Table
+## 🐳 Docker Deployment
 
-Run this SQL in your Supabase SQL editor:
+Use this Dockerfile to deploy anywhere (including Render):
+
+```dockerfile
+FROM python:3.10-slim
+
+WORKDIR /app
+COPY backend /app
+COPY frontend /app/frontend
+
+RUN pip install --no-cache-dir -r requirements.txt
+
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+```
+
+Make sure to add your `.env` in Render's dashboard under Environment Variables.
+
+---
+
+## 📦 Supabase Table
+
+Run this SQL inside your Supabase SQL editor:
 
 ```sql
 create extension if not exists vector;
@@ -75,65 +117,34 @@ create table web_vectors (
 
 ---
 
-### 5. Run the Backend Server
+## 🔍 URL Normalization
 
-```bash
-uvicorn backend.main:app --reload
-```
-
-API will be available at `http://localhost:8000`.
+- Any URL entered like `northlightai.com`, `https://NorthLightAI.com`, `https://northlightai.com/our-team`  
+  → is automatically normalized to `https://www.northlightai.com/...`  
+  → so no duplicate entries are stored
 
 ---
 
-### 6. Open Frontend
+## 📚 Tech Stack
 
-- Open `frontend/index.html` directly in your browser
-- (Or use Live Server extension in VS Code for better dev experience)
-
----
-
-## 🚀 Features
-
-- 🌐 Scrape any public webpage
-- 🧠 Store text + semantic vectors in Supabase
-- 🧠 Intelligent question-answering using Gemini Pro
-- 🎨 Beautiful and clean frontend interface
-- 📈 Automatically improves knowledge as you add more websites
+| Feature         | Tool                         |
+|----------------|------------------------------|
+| Backend API     | FastAPI                      |
+| Web Scraping    | BeautifulSoup + Selenium     |
+| Embeddings      | Google Gemini Embedding API  |
+| Chat Response   | Google Gemini Pro            |
+| Vector Storage  | Supabase + pgvector          |
+| Frontend        | HTML, CSS, JavaScript        |
+| Deployment      | Docker + Render              |
 
 ---
 
-## 📌 Tech Stack
+## 👤 Author
 
-| Component        | Technology                      |
-|------------------|----------------------------------|
-| Backend API      | FastAPI                          |
-| Web Scraping     | BeautifulSoup                    |
-| Embeddings       | Google Gemini Embedding API      |
-| Vector Storage   | Supabase + pgvector extension    |
-| LLM Q&A          | Google Gemini Pro (Text Gen)     |
-| Frontend UI      | HTML + CSS + Vanilla JavaScript  |
+Made by Roozbeh Ghasemi — follow me on [GitHub](https://github.com/roozbehh)
 
 ---
 
-## ✨ Future Improvements (Optional)
+## ⚠️ Legal Note
 
-- Auto-crawl full websites or sitemaps
-- Add PDF ingestion
-- Streamlit / React frontend
-- Dockerize full application
-- Deploy to Render, Vercel, or Hugging Face Spaces
-
----
-
-## 👨‍💻 Author
-
-Made by Roozbeh Ghasemi
-
----
-
-## ⚠️ Disclaimer
-
-This project is developed purely for **learning and educational purposes**.
-It is intended as a demonstration of web scraping, vector storage, and chatbot integration.
-Please ensure that your usage of the app complies with all applicable copyright and website terms of service.
-
+This project is for educational/demo purposes. Please respect all site terms and conditions.
