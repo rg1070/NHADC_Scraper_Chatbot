@@ -17,6 +17,7 @@ ENV PATH=$PATH:/usr/bin/chromium
 
 # Copy backend code
 COPY ./backend /app
+COPY frontend ./frontend
 
 # Install dependencies
 RUN pip install --no-cache-dir -r requirements.txt

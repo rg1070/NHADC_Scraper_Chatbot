@@ -14,6 +14,8 @@ import os
 from dotenv import load_dotenv
 from supabase_utils import store_chunks, query_top_chunks, supabase, TABLE
 
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 
 load_dotenv()
 
@@ -110,3 +112,10 @@ async def get_urls():
     response = supabase.table(TABLE).select("url").execute()
     urls = list({row["url"] for row in response.data})  # Set to remove duplicates
     return {"urls": urls}
+
+# Serve static frontend
+app.mount("/static", StaticFiles(directory="frontend"), name="static")
+
+@app.get("/")
+async def root():
+    return FileResponse(os.path.join("frontend", "index.html"))
