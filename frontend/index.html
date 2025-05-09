@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Website Knowledge Chatbot</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background: #f5f6fa;
+            margin: 0;
+            padding: 20px;
+            max-width: 900px;
+            margin: auto;
+        }
+
+        .chat-references {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-top: 20px;
+            border: 1px solid #ccc;
+        }
+
+        .chat-box {
+            background: white;
+            margin-top: 20px;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .user-entry {
+            background: #d1f0d1;
+            text-align: right;
+            margin-top: 10px;
+            padding: 10px;
+            border-radius: 6px;
+        }
+
+        .bot-entry {
+            background: #e1e9f5;
+            text-align: left;
+            margin-top: 10px;
+            padding: 10px;
+            border-radius: 6px;
+        }
+
+        input,
+        button {
+            width: 100%;
+            padding: 10px;
+            margin: 8px 0;
+            border-radius: 6px;
+            border: 1px solid #ccc;
+        }
+
+        button {
+            background: #4a69bd;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background: #3b55a1;
+        }
+
+        #buttons {
+            display: flex;
+            gap: 10px;
+        }
+
+        #buttons button {
+            flex: 1;
+        }
+    </style>
+</head>
+
+<body>
+
+    <h2>🌎 Webpage Knowledge Chatbot</h2>
+
+    <input id="url" type="text" placeholder="Enter webpage URL" />
+    <button onclick="addURL()">Add Website</button>
+
+
+
+    <div class="chat-box">
+        <input id="question" type="text" placeholder="Ask a question..." onkeypress="handleKey(event)" />
+        <div id="buttons">
+            <button onclick="askQuestion()">Ask</button>
+            <button onclick="clearChat()">🧹 Clear Chat</button>
+        </div>
+        <div id="answers"></div>
+    </div>
+
+    <h3>🔖 Chat References</h3>
+    <div id="site-preview" class="chat-references"></div>
+
+    <script>
+        async function addURL() {
+            const url = document.getElementById('url').value;
+
+            await fetch('http://localhost:8000/add_url', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ url })
+            });
+
+            const res = await fetch('http://localhost:8000/get_urls');
+            const data = await res.json();
+            const previewBox = document.getElementById('site-preview');
+
+            previewBox.innerHTML = "";
+            data.urls.forEach(link => {
+                const linkElement = document.createElement('div');
+                linkElement.style.marginBottom = '8px';
+                linkElement.innerHTML = `<a href="${link}" target="_blank">${link}</a>`;
+                previewBox.appendChild(linkElement);
+            });
+        }
+
+        async function askQuestion() {
+            const questionInput = document.getElementById('question');
+            const question = questionInput.value;
+            if (!question.trim()) return;
+
+            // Show user message
+            const userBox = document.createElement('div');
+            userBox.className = 'user-entry';
+            userBox.innerText = '🧑 ' + question;
+            document.getElementById('answers').appendChild(userBox);
+
+            // Clear input
+            questionInput.value = "";
+
+            // Show typing animation
+            const botBox = document.createElement('div');
+            botBox.className = 'bot-entry';
+            botBox.innerText = '🤖 Typing...';
+            document.getElementById('answers').appendChild(botBox);
+
+            const res = await fetch('http://localhost:8000/ask', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ question })
+            });
+            const data = await res.json();
+
+            // Update bot answer
+            botBox.innerText = '🤖 ' + data.answer;
+        }
+
+        function clearChat() {
+            document.getElementById('answers').innerHTML = "";
+        }
+
+        function handleKey(event) {
+            if (event.key === "Enter") {
+                event.preventDefault();
+                askQuestion();
+            }
+        }
+    </script>
+
+</body>
+
+</html>
