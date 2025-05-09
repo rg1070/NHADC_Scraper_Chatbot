@@ -2,7 +2,7 @@
 <html lang="en">
 
 <head>
-    <meta charset="UTF-8">
+    <meta charset="UTF-8" />
     <title>Website Knowledge Chatbot</title>
     <style>
         body {
@@ -84,8 +84,6 @@
     <input id="url" type="text" placeholder="Enter webpage URL" />
     <button onclick="addURL()">Add Website</button>
 
-
-
     <div class="chat-box">
         <input id="question" type="text" placeholder="Ask a question..." onkeypress="handleKey(event)" />
         <div id="buttons">
@@ -108,7 +106,7 @@
                 body: JSON.stringify({ url })
             });
 
-            const res = await fetch('http://localhost:8000/get_urls');
+            const res = await fetch('/get_urls');
             const data = await res.json();
             const previewBox = document.getElementById('site-preview');
 
@@ -126,16 +124,13 @@
             const question = questionInput.value;
             if (!question.trim()) return;
 
-            // Show user message
             const userBox = document.createElement('div');
             userBox.className = 'user-entry';
             userBox.innerText = '🧑 ' + question;
             document.getElementById('answers').appendChild(userBox);
 
-            // Clear input
             questionInput.value = "";
 
-            // Show typing animation
             const botBox = document.createElement('div');
             botBox.className = 'bot-entry';
             botBox.innerText = '🤖 Typing...';
@@ -146,9 +141,8 @@
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ question })
             });
-            const data = await res.json();
 
-            // Update bot answer
+            const data = await res.json();
             botBox.innerText = '🤖 ' + data.answer;
         }
 
