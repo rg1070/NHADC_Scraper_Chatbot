@@ -1,150 +1,115 @@
-# 🌐 Webpage Knowledge Chatbot (Deployed)
+# 🌐 Website Knowledge Chatbot
 
-This is a fully functional AI-powered chatbot that lets you scrape any public webpage, embed its content using **Google Gemini**, and ask questions using only that webpage’s content. It’s live at:  
-👉 **[https://nhadc-scraper-chatbot.onrender.com](https://nhadc-scraper-chatbot.onrender.com)**
+This is a full-stack web application that allows you to enter any website URL, scrape its content (including sitemap if available), store the data in Supabase, and interact with it using a Gemini-powered chatbot.
 
----
+## 🔧 Features
 
-## ✅ What It Does
-
-- Scrapes **dynamic or static websites** (via BeautifulSoup and Selenium)
-- Extracts visible text and chunks it
-- Embeds the chunks using **Gemini Embedding API**
-- Stores content + embeddings in a **Supabase pgvector** table
-- Uses **Gemini Pro** to answer questions based only on the stored webpage content
-- Avoids duplicate entries by normalizing URLs
-
----
-
-## 🚀 Live Demo
-
-👉 [https://nhadc-scraper-chatbot.onrender.com](https://nhadc-scraper-chatbot.onrender.com)
+- 🔗 Normalize and handle all URL formats (with or without `www`, `https`, etc.)
+- 🕷️ Automatically parse and crawl full sitemaps
+- 🧠 Embed content with Google Gemini embeddings (limit-safe chunking)
+- 🧾 Store vector data in Supabase with deduplication
+- 💬 Ask questions via Gemini Flash chatbot
+- 📑 References section with paginated display of scraped URLs
+- 🌐 Visualize website structure via interactive graph
+- ✅ Popup loading/success indicators
 
 ---
 
 ## 🗂️ Project Structure
 
 ```
-webpage_chatbot/
-├── backend/
-│   ├── main.py             # FastAPI app: scrape, embed, chat
-│   ├── supabase_utils.py   # Supabase interaction helpers
-│   ├── requirements.txt
-│   └── .env                # (excluded from GitHub)
-│
-├── frontend/
-│   └── index.html          # Simple, clean chatbot UI
-│
-├── Dockerfile
-├── README.md
+.
+├── backend
+│   ├── main.py               # FastAPI app
+│   ├── aiagent.py            # Gemini chunking + embedding logic
+│   ├── scraper.py            # BeautifulSoup & Selenium logic
+│   ├── sitemap_parser.py     # Graph + sitemap parsing
+│   └── supabase_utils.py     # Supabase insert/query helpers
+├── frontend
+│   ├── index.html            # Main UI with embedded JS
+│   └── style.css             # Styling (used via <link>)
+├── requirements.txt          # Python dependencies
+├── dockerfile                # For container deployment (Render-ready)
+├── render.yaml               # Render deployment config
+└── README.md
 ```
 
 ---
 
-## ⚙️ Setup Instructions (Local)
+## ⚙️ Technologies Used
 
-### 1. Clone the Repo
-
-```bash
-git clone https://github.com/your-username/webpage_chatbot.git
-cd webpage_chatbot
-```
-
-### 2. Install Backend Requirements
-
-```bash
-cd backend
-pip install -r requirements.txt
-```
-
-### 3. Setup `.env`
-
-Create a file `backend/.env`:
-
-```env
-GOOGLE_API_KEY=your_gemini_key
-SUPABASE_URL=https://your-project.supabase.co
-SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role
-SUPABASE_TABLE=web_vectors
-```
-
-### 4. Run Backend
-
-```bash
-uvicorn main:app --host 0.0.0.0 --port 8000
-```
-
-### 5. Open Frontend
-
-Visit `http://localhost:8000` and use the chatbot.
+- FastAPI
+- Google Generative AI (Gemini Flash & Embeddings)
+- Supabase (Postgres + RPC)
+- Selenium + BeautifulSoup
+- PyVis + NetworkX (Graph visualization)
+- Vanilla HTML/CSS/JavaScript
 
 ---
 
-## 🐳 Docker Deployment
+## 🚀 How to Run Locally
 
-Use this Dockerfile to deploy anywhere (including Render):
+1. **Install dependencies**
+   ```bash
+   pip install -r requirements.txt
+   ```
 
-```dockerfile
-FROM python:3.10-slim
+2. **Setup environment**
+   Create a `.env` file in the root and define:
 
-WORKDIR /app
-COPY backend /app
-COPY frontend /app/frontend
+   ```env
+   GOOGLE_API_KEY=your_google_key
+   SUPABASE_URL=https://your-project.supabase.co
+   SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
+   SUPABASE_TABLE=web_chunks
+   ```
 
-RUN pip install --no-cache-dir -r requirements.txt
+3. **Run the backend**
+   ```bash
+   uvicorn backend.main:app --reload
+   ```
 
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
-```
-
-Make sure to add your `.env` in Render's dashboard under Environment Variables.
-
----
-
-## 📦 Supabase Table
-
-Run this SQL inside your Supabase SQL editor:
-
-```sql
-create extension if not exists vector;
-
-create table web_vectors (
-  id uuid default gen_random_uuid() primary key,
-  url text,
-  chunk text,
-  embedding vector(768)
-);
-```
+4. **Access the frontend**
+   Open your browser at:
+   ```
+   http://localhost:8000
+   ```
 
 ---
 
-## 🔍 URL Normalization
+## 🐳 Docker (Render Deployment)
 
-- Any URL entered like `northlightai.com`, `https://NorthLightAI.com`, `https://northlightai.com/our-team`  
-  → is automatically normalized to `https://www.northlightai.com/...`  
-  → so no duplicate entries are stored
+1. Ensure `render.yaml` exists and points to:
+   ```yaml
+   services:
+     - type: web
+       name: website-chatbot
+       env: docker
+       plan: free
+       dockerfilePath: ./dockerfile
+       buildCommand: ""
+       startCommand: uvicorn backend.main:app --host 0.0.0.0 --port 8000
+   ```
 
----
-
-## 📚 Tech Stack
-
-| Feature         | Tool                         |
-|----------------|------------------------------|
-| Backend API     | FastAPI                      |
-| Web Scraping    | BeautifulSoup + Selenium     |
-| Embeddings      | Google Gemini Embedding API  |
-| Chat Response   | Google Gemini Pro            |
-| Vector Storage  | Supabase + pgvector          |
-| Frontend        | HTML, CSS, JavaScript        |
-| Deployment      | Docker + Render              |
+2. Push to GitHub and connect Render.com
 
 ---
 
-## 👤 Author
+## ⚠️ Notes
 
-Made by Roozbeh Ghasemi — follow me on [GitHub](https://github.com/roozbehh)
+- Gemini embedding API limits input to 36,000 characters — chunking is applied to avoid errors.
+- If a website blocks static requests, Selenium is used as fallback.
+- Only text from `<p>` tags and `get_text()` is scraped — media, images, and scripts are ignored.
+- Graphs are saved as JSON in `static/graphs/`.
 
 ---
 
-## ⚠️ Legal Note
+## ✅ Example Live App
 
-This project is for educational/demo purposes. Please respect all site terms and conditions.
+> https://your-render-url.onrender.com
+
+---
+
+## 📄 License
+
+MIT — do anything, just give credit.

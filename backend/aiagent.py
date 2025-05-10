@@ -11,7 +11,8 @@ chat_model = genai.GenerativeModel('gemini-2.0-flash-001')
 
 
 def chunk_text(text, max_bytes=36000):
-    """Split text into UTF-8 byte-safe chunks, preferably at sentence boundaries."""
+    import re
+
     sentences = re.split(r'(?<=[.!?]) +', text)
     chunks = []
     current_chunk = ""
@@ -22,13 +23,15 @@ def chunk_text(text, max_bytes=36000):
             current_chunk = test_chunk
         else:
             if current_chunk:
-                chunks.append(current_chunk.strip())
+                chunks.append(current_chunk)
+            # Sentence too long alone — split by words
             if len(sentence.encode("utf-8")) > max_bytes:
                 words = sentence.split()
                 buffer = ""
                 for word in words:
-                    if len((buffer + " " + word).encode("utf-8")) <= max_bytes:
-                        buffer = (buffer + " " + word).strip()
+                    test_buffer = (buffer + " " + word).strip()
+                    if len(test_buffer.encode("utf-8")) <= max_bytes:
+                        buffer = test_buffer
                     else:
                         chunks.append(buffer)
                         buffer = word
@@ -42,6 +45,8 @@ def chunk_text(text, max_bytes=36000):
         chunks.append(current_chunk.strip())
 
     return chunks
+
+
 
 
 def embed_texts(texts):
