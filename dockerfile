@@ -18,7 +18,7 @@ ENV CHROME_BIN=/usr/bin/chromium
 ENV PATH="${CHROME_BIN}:${PATH}"
 
 # Install Python dependencies
-RUN pip install --upgrade pip
+RUN pip install --upgrade pip --no-cache-dir --root-user-action=ignore
 RUN pip install -r backend/requirements.txt
 
 # Expose port
