@@ -6,4 +6,5 @@ selenium
 python-dotenv
 google-generativeai
 supabase
+networkx
 chromedriver-autoinstaller
