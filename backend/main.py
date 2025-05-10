@@ -14,7 +14,7 @@ from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
 
-from app import parse_sitemap  # your existing sitemap parser
+from backend.app import parse_sitemap
 from supabase_utils import store_chunks, query_top_chunks, supabase, TABLE
 import google.generativeai as genai
 
