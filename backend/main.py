@@ -15,7 +15,7 @@ from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
 
 from backend.sitemap_parser import parse_sitemap
-from supabase_utils import store_chunks, query_top_chunks, supabase, TABLE
+from backend.supabase_utils import store_chunks, query_top_chunks, supabase, TABLE
 import google.generativeai as genai
 
 load_dotenv()
