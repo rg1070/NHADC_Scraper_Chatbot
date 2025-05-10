@@ -2,162 +2,81 @@
 <html lang="en">
 
 <head>
-    <meta charset="UTF-8" />
-    <title>Website Knowledge Chatbot</title>
-    <style>
-        body {
-            font-family: 'Segoe UI', sans-serif;
-            background: #f5f6fa;
-            margin: 0;
-            padding: 20px;
-            max-width: 900px;
-            margin: auto;
-        }
-
-        .chat-references {
-            background: white;
-            padding: 20px;
-            border-radius: 8px;
-            margin-top: 20px;
-            border: 1px solid #ccc;
-        }
-
-        .chat-box {
-            background: white;
-            margin-top: 20px;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-        }
-
-        .user-entry {
-            background: #d1f0d1;
-            text-align: right;
-            margin-top: 10px;
-            padding: 10px;
-            border-radius: 6px;
-        }
-
-        .bot-entry {
-            background: #e1e9f5;
-            text-align: left;
-            margin-top: 10px;
-            padding: 10px;
-            border-radius: 6px;
-        }
-
-        input,
-        button {
-            width: 100%;
-            padding: 10px;
-            margin: 8px 0;
-            border-radius: 6px;
-            border: 1px solid #ccc;
-        }
-
-        button {
-            background: #4a69bd;
-            color: white;
-            border: none;
-            cursor: pointer;
-        }
-
-        button:hover {
-            background: #3b55a1;
-        }
-
-        #buttons {
-            display: flex;
-            gap: 10px;
-        }
-
-        #buttons button {
-            flex: 1;
-        }
-    </style>
+    <meta charset="UTF-8">
+    <title>Smart Scraper Chatbot</title>
+    <link rel="stylesheet" href="/static/style.css">
 </head>
 
 <body>
+    <h1>Website Scraper Chatbot</h1>
 
-    <h2>🌎 Webpage Knowledge Chatbot</h2>
+    <input type="text" id="urlInput" placeholder="Enter website URL..." />
+    <button onclick="addUrl()">Scrape Website</button>
 
-    <input id="url" type="text" placeholder="Enter webpage URL" />
-    <button onclick="addURL()">Add Website</button>
+    <div id="scrapedLinks"></div>
 
-    <div class="chat-box">
-        <input id="question" type="text" placeholder="Ask a question..." onkeypress="handleKey(event)" />
-        <div id="buttons">
-            <button onclick="askQuestion()">Ask</button>
-            <button onclick="clearChat()">🧹 Clear Chat</button>
-        </div>
-        <div id="answers"></div>
-    </div>
+    <textarea id="questionInput" placeholder="Ask a question..."></textarea>
+    <button onclick="ask()">Ask</button>
+    <div id="responseOutput"></div>
 
-    <h3>🔖 Chat References</h3>
-    <div id="site-preview" class="chat-references"></div>
+    <div id="pagination"></div>
+
+    <h3>Reference Domain</h3>
+    <select id="siteDropdown" onchange="showGraph(this.value)">
+        <option>Select a site...</option>
+    </select>
+    <div id="graphContainer"></div>
 
     <script>
-        async function addURL() {
-            const url = document.getElementById('url').value;
-
-            await fetch('/add_url', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+        async function addUrl() {
+            const url = document.getElementById('urlInput').value;
+            const res = await fetch("/add_url", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ url })
             });
-
-            const res = await fetch('/get_urls');
             const data = await res.json();
-            const previewBox = document.getElementById('site-preview');
-
-            previewBox.innerHTML = "";
-            data.urls.forEach(link => {
-                const linkElement = document.createElement('div');
-                linkElement.style.marginBottom = '8px';
-                linkElement.innerHTML = `<a href="${link}" target="_blank">${link}</a>`;
-                previewBox.appendChild(linkElement);
-            });
+            alert(data.message);
+            renderLinks(data.scraped_links);
+            updateDropdown();
         }
 
-        async function askQuestion() {
-            const questionInput = document.getElementById('question');
-            const question = questionInput.value;
-            if (!question.trim()) return;
-
-            const userBox = document.createElement('div');
-            userBox.className = 'user-entry';
-            userBox.innerText = '🧑 ' + question;
-            document.getElementById('answers').appendChild(userBox);
-
-            questionInput.value = "";
-
-            const botBox = document.createElement('div');
-            botBox.className = 'bot-entry';
-            botBox.innerText = '🤖 Typing...';
-            document.getElementById('answers').appendChild(botBox);
-
-            const res = await fetch('/ask', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+        async function ask() {
+            const question = document.getElementById('questionInput').value;
+            const res = await fetch("/ask", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ question })
             });
-
             const data = await res.json();
-            botBox.innerText = '🤖 ' + data.answer;
+            document.getElementById("responseOutput").innerText = data.answer;
         }
 
-        function clearChat() {
-            document.getElementById('answers').innerHTML = "";
+        function renderLinks(links) {
+            const container = document.getElementById('scrapedLinks');
+            container.innerHTML = "<h3>Scraped Pages</h3>";
+            links.forEach(link => {
+                container.innerHTML += `<div>${link}</div>`;
+            });
         }
 
-        function handleKey(event) {
-            if (event.key === "Enter") {
-                event.preventDefault();
-                askQuestion();
-            }
+        async function updateDropdown() {
+            const res = await fetch("/get_urls");
+            const data = await res.json();
+            const dropdown = document.getElementById("siteDropdown");
+            dropdown.innerHTML = `<option>Select a site...</option>`;
+            data.urls.forEach(url => {
+                dropdown.innerHTML += `<option value="${url}">${url}</option>`;
+            });
         }
+
+        function showGraph(url) {
+            const graphDiv = document.getElementById("graphContainer");
+            graphDiv.innerHTML = `<iframe src="/static/graphs/${new URL(url).hostname}.json" width="100%" height="400px"></iframe>`;
+        }
+
+        window.onload = updateDropdown;
     </script>
-
 </body>
 
 </html>

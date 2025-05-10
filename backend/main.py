@@ -3,31 +3,28 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import requests
 from bs4 import BeautifulSoup
-from urllib.parse import urlparse, urlunparse
+from urllib.parse import urlparse
+import time
+import os
+from dotenv import load_dotenv
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
-import time
 
-import google.generativeai as genai
-import os
-from dotenv import load_dotenv
+from app import parse_sitemap  # your existing sitemap parser
 from supabase_utils import store_chunks, query_top_chunks, supabase, TABLE
-
-from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
+import google.generativeai as genai
 
 load_dotenv()
 
-# Configure Gemini API
 genai.configure(api_key=os.getenv("GOOGLE_API_KEY"))
-embed_model = genai.GenerativeModel('embedding-001')
 chat_model = genai.GenerativeModel('gemini-2.0-flash-001')
 
 app = FastAPI()
 
-# CORS for frontend
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -35,37 +32,43 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Normalize URL to a standard format
+app.mount("/static", StaticFiles(directory="frontend"), name="static")
+
+@app.get("/")
+async def serve_index():
+    return FileResponse(os.path.join("frontend", "index.html"))
+
+# --- Models ---
+class URLInput(BaseModel):
+    url: str
+
+class QuestionInput(BaseModel):
+    question: str
+
+# --- Core Functions ---
 def normalize_url(url: str) -> str:
-    parsed = urlparse(url.strip().lower())
+    url = url.lower().strip()
+    if not url.startswith("http"):
+        url = "https://" + url
+    parsed = urlparse(url)
+    domain = parsed.netloc or parsed.path
+    return f"https://{domain}"
 
-    scheme = parsed.scheme or "https"
-
-    # Handle cases like "northlightai.com/page" (missing netloc)
-    netloc = parsed.netloc if parsed.netloc else parsed.path.split('/')[0]
-    if not netloc.startswith("www."):
-        netloc = "www." + netloc
-
-    path = parsed.path if parsed.netloc else '/' + '/'.join(parsed.path.split('/')[1:])
-    return urlunparse((scheme, netloc, path, '', '', ''))
-
-# Scrape webpage
 def scrape(url):
     try:
-        response = requests.get(url)
+        response = requests.get(url, timeout=10)
         soup = BeautifulSoup(response.text, 'html.parser')
         text = soup.get_text(separator=' ', strip=True)
         if text:
             return text
-    except Exception:
-        pass  # Fallback to Selenium
+    except:
+        pass
 
     try:
         options = Options()
         options.add_argument('--headless')
         options.add_argument('--disable-gpu')
         options.add_argument('--no-sandbox')
-
         driver = webdriver.Chrome(options=options)
         driver.get(url)
         time.sleep(3)
@@ -73,16 +76,13 @@ def scrape(url):
         text = ' '.join(elem.text for elem in elems).strip()
         driver.quit()
         return text
-    except Exception as e:
-        print(f"Selenium scrape failed: {e}, URL: {url}")
+    except:
         return ""
 
-# Chunk text
 def chunk_text(text, size=300):
     words = text.split()
-    return [' '.join(words[i:i+size]) for i in range(0, len(words), size)]
+    return [' '.join(words[i:i + size]) for i in range(0, len(words), size)]
 
-# Embed text using Gemini
 def embed_texts(texts):
     embeddings = []
     for text in texts:
@@ -94,29 +94,27 @@ def embed_texts(texts):
         embeddings.append(response["embedding"])
     return embeddings
 
-# Request Models
-class URLInput(BaseModel):
-    url: str
-
-class QuestionInput(BaseModel):
-    question: str
-
+# --- Endpoints ---
 @app.post("/add_url")
 async def add_url(data: URLInput):
-    normalized_url = normalize_url(data.url)
-    print(f"🔗 Normalized URL: {normalized_url}")
+    base_url = normalize_url(data.url)
+    sitemap_url = base_url.rstrip("/") + "/sitemap.xml"
+    try:
+        links = parse_sitemap(sitemap_url)
+    except:
+        links = [base_url]
 
-    text = scrape(normalized_url)
-    if not text.strip():
-        return {"message": f"🚫 No content found for {normalized_url}. Nothing was stored."}
+    scraped = []
+    for link in links:
+        text = scrape(link)
+        if not text.strip():
+            continue
+        chunks = chunk_text(text)
+        embeddings = embed_texts(chunks)
+        store_chunks(base_url, chunks, embeddings)
+        scraped.append(link)
 
-    chunks = chunk_text(text)
-    embeddings = embed_texts(chunks)
-    if not any(chunks) or not any(embeddings):
-        return {"message": f"🚫 Could not generate valid content or embeddings for {normalized_url}."}
-
-    store_chunks(normalized_url, chunks, embeddings)
-    return {"message": f"✅ Stored {len(chunks)} chunks from {normalized_url}"}
+    return {"message": f"✅ Scraped {len(scraped)} pages from sitemap.", "scraped_links": scraped}
 
 @app.post("/ask")
 async def ask(data: QuestionInput):
@@ -130,12 +128,5 @@ async def ask(data: QuestionInput):
 @app.get("/get_urls")
 async def get_urls():
     response = supabase.table(TABLE).select("url").execute()
-    urls = list({row["url"] for row in response.data})  # remove duplicates
+    urls = list({row["url"] for row in response.data})
     return {"urls": urls}
-
-# Serve static frontend
-app.mount("/static", StaticFiles(directory="frontend"), name="static")
-
-@app.get("/")
-async def root():
-    return FileResponse(os.path.join("frontend", "index.html"))
