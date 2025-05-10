@@ -2,30 +2,104 @@
 <html lang="en">
 
 <head>
-    <meta charset="UTF-8">
-    <title>Smart Scraper Chatbot</title>
-    <link rel="stylesheet" href="/static/style.css">
+    <meta charset="UTF-8" />
+    <title>Website Knowledge Chatbot</title>
+    <link rel="stylesheet" href="/static/style.css" />
+    <style>
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background: #f5f6fa;
+            margin: 0;
+            padding: 20px;
+            max-width: 900px;
+            margin: auto;
+        }
+
+        .chat-box,
+        .chat-references {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-top: 20px;
+            border: 1px solid #ccc;
+        }
+
+        .user-entry {
+            background: #d1f0d1;
+            text-align: right;
+            margin-top: 10px;
+            padding: 10px;
+            border-radius: 6px;
+        }
+
+        .bot-entry {
+            background: #e1e9f5;
+            text-align: left;
+            margin-top: 10px;
+            padding: 10px;
+            border-radius: 6px;
+        }
+
+        input,
+        textarea,
+        select,
+        button {
+            width: 100%;
+            padding: 10px;
+            margin: 8px 0;
+            border-radius: 6px;
+            border: 1px solid #ccc;
+            box-sizing: border-box;
+        }
+
+        button {
+            background: #4a69bd;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background: #3b55a1;
+        }
+
+        #buttons {
+            display: flex;
+            gap: 10px;
+        }
+
+        #buttons button {
+            flex: 1;
+        }
+    </style>
 </head>
 
 <body>
-    <h1>Website Scraper Chatbot</h1>
+    <h2>🌎 Webpage Knowledge Chatbot</h2>
 
-    <input type="text" id="urlInput" placeholder="Enter website URL..." />
+    <input id="urlInput" type="text" placeholder="Enter website URL..." />
     <button onclick="addUrl()">Scrape Website</button>
 
-    <div id="scrapedLinks"></div>
+    <div class="chat-box">
+        <textarea id="questionInput" placeholder="Ask a question..." onkeypress="handleKey(event)"></textarea>
+        <div id="buttons">
+            <button onclick="ask()">Ask</button>
+            <button onclick="clearChat()">🧹 Clear Chat</button>
+        </div>
+        <div id="answers"></div>
+    </div>
 
-    <textarea id="questionInput" placeholder="Ask a question..."></textarea>
-    <button onclick="ask()">Ask</button>
-    <div id="responseOutput"></div>
+    <h3>🔗 Scraped Pages</h3>
+    <div id="scrapedLinks" class="chat-references"></div>
 
-    <div id="pagination"></div>
+    <div id="pagination" class="chat-references"></div>
 
-    <h3>Reference Domain</h3>
+    <h3>🌐 Reference Domain</h3>
     <select id="siteDropdown" onchange="showGraph(this.value)">
         <option>Select a site...</option>
     </select>
-    <div id="graphContainer"></div>
+
+    <div id="graphContainer" class="chat-references"></div>
 
     <script>
         async function addUrl() {
@@ -37,26 +111,49 @@
             });
             const data = await res.json();
             alert(data.message);
-            renderLinks(data.scraped_links);
+            renderLinks(data.scraped_links || []);
             updateDropdown();
         }
 
         async function ask() {
             const question = document.getElementById('questionInput').value;
+            if (!question.trim()) return;
+
+            const userBox = document.createElement('div');
+            userBox.className = 'user-entry';
+            userBox.innerText = '🧑 ' + question;
+            document.getElementById('answers').appendChild(userBox);
+
+            const botBox = document.createElement('div');
+            botBox.className = 'bot-entry';
+            botBox.innerText = '🤖 ...';
+            document.getElementById('answers').appendChild(botBox);
+
             const res = await fetch("/ask", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ question })
             });
             const data = await res.json();
-            document.getElementById("responseOutput").innerText = data.answer;
+            botBox.innerText = '🤖 ' + data.answer;
+        }
+
+        function clearChat() {
+            document.getElementById("answers").innerHTML = "";
+        }
+
+        function handleKey(event) {
+            if (event.key === "Enter" && !event.shiftKey) {
+                event.preventDefault();
+                ask();
+            }
         }
 
         function renderLinks(links) {
             const container = document.getElementById('scrapedLinks');
-            container.innerHTML = "<h3>Scraped Pages</h3>";
+            container.innerHTML = "";
             links.forEach(link => {
-                container.innerHTML += `<div>${link}</div>`;
+                container.innerHTML += `<div><a href="${link}" target="_blank">${link}</a></div>`;
             });
         }
 
