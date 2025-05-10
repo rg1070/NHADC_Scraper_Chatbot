@@ -8,7 +8,6 @@ supabase = create_client(os.getenv("SUPABASE_URL"), os.getenv("SUPABASE_SERVICE_
 TABLE = os.getenv("SUPABASE_TABLE")
 
 def store_chunks(url, chunks, embeddings):
-
     # First, delete existing entries for this URL
     try:
         supabase.table(TABLE).delete().eq("url", url).execute()
@@ -20,20 +19,22 @@ def store_chunks(url, chunks, embeddings):
     rows = []
     for chunk, embedding in zip(chunks, embeddings):
         if chunk and embedding:
+            # Clean null characters
+            clean_chunk = chunk.replace('\x00', '')
             rows.append({
                 "url": url,
-                "chunk": chunk,
+                "chunk": clean_chunk,
                 "embedding": embedding
             })
 
-    print("✅ Rows prepared for insertion.")  # for debugging
+    #print("✅ Rows prepared for insertion.")  # for debugging
 
     if not rows:
         raise ValueError("🚫 No valid rows to insert into Supabase.")
 
     # Insert new rows
     supabase.table(TABLE).insert(rows).execute()
-    print("✅ New rows inserted successfully.")
+    print(f"✅ New rows inserted successfully: {url}")
 
 def query_top_chunks(query_vector, top_k=3):
     response = supabase.rpc(

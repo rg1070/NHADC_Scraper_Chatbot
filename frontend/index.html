@@ -4,74 +4,7 @@
 <head>
     <meta charset="UTF-8" />
     <title>Website Knowledge Chatbot</title>
-    <link rel="stylesheet" href="/static/style.css" />
-    <style>
-        body {
-            font-family: 'Segoe UI', sans-serif;
-            background: #f5f6fa;
-            margin: 0;
-            padding: 20px;
-            max-width: 900px;
-            margin: auto;
-        }
-
-        .chat-box,
-        .chat-references {
-            background: white;
-            padding: 20px;
-            border-radius: 8px;
-            margin-top: 20px;
-            border: 1px solid #ccc;
-        }
-
-        .user-entry {
-            background: #d1f0d1;
-            text-align: right;
-            margin-top: 10px;
-            padding: 10px;
-            border-radius: 6px;
-        }
-
-        .bot-entry {
-            background: #e1e9f5;
-            text-align: left;
-            margin-top: 10px;
-            padding: 10px;
-            border-radius: 6px;
-        }
-
-        input,
-        textarea,
-        select,
-        button {
-            width: 100%;
-            padding: 10px;
-            margin: 8px 0;
-            border-radius: 6px;
-            border: 1px solid #ccc;
-            box-sizing: border-box;
-        }
-
-        button {
-            background: #4a69bd;
-            color: white;
-            border: none;
-            cursor: pointer;
-        }
-
-        button:hover {
-            background: #3b55a1;
-        }
-
-        #buttons {
-            display: flex;
-            gap: 10px;
-        }
-
-        #buttons button {
-            flex: 1;
-        }
-    </style>
+    <link rel="stylesheet" href="/frontend/style.css" />
 </head>
 
 <body>
@@ -89,51 +22,159 @@
         <div id="answers"></div>
     </div>
 
-    <h3>🔗 Scraped Pages</h3>
+    <h3 id="referenceHeader">🔗 References</h3>
     <div id="scrapedLinks" class="chat-references"></div>
+    <div id="pagination"></div>
 
-    <div id="pagination" class="chat-references"></div>
-
-    <h3>🌐 Reference Domain</h3>
+    <h3>🌐 Website Visualizer</h3>
     <select id="siteDropdown" onchange="showGraph(this.value)">
         <option>Select a site...</option>
     </select>
 
     <div id="graphContainer" class="chat-references"></div>
 
+    <!-- 📌 Popup modal -->
+    <div id="popup"
+        style="display:none; position:fixed; top:20px; left:50%; transform:translateX(-50%); background:#fff; padding:20px; border-radius:8px; box-shadow:0 4px 12px rgba(0,0,0,0.2); z-index:999;">
+        <span id="popupMessage">Loading...</span>
+        <button onclick="hidePopup()" style="margin-top:10px;">Close</button>
+    </div>
+
     <script>
+        let allLinks = [];
+        let currentPage = 1;
+        const pageSize = 10;
+
         async function addUrl() {
-            const url = document.getElementById('urlInput').value;
+            const urlInput = document.getElementById('urlInput');
+            const url = urlInput.value.trim();
+            if (!url) return;
+
+            showPopup("⏳ Loading...");
+
             const res = await fetch("/add_url", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ url })
             });
+
             const data = await res.json();
-            alert(data.message);
-            renderLinks(data.scraped_links || []);
+            const countMatch = data.message.match(/(\d+)/);
+            const count = countMatch ? countMatch[1] : "some";
+
+            showPopup(`✅ Scraped ${count} page${count === "1" ? "" : "s"} from sitemap.`, 3000);
+            urlInput.value = "";
+            fetchInitialLinks();
             updateDropdown();
         }
 
+        function showPopup(message, autoCloseMs = null) {
+            const popup = document.getElementById("popup");
+            document.getElementById("popupMessage").innerText = message;
+            popup.style.display = "block";
+
+            if (autoCloseMs) {
+                setTimeout(() => {
+                    popup.style.display = "none";
+                }, autoCloseMs);
+            }
+        }
+
+        function hidePopup() {
+            document.getElementById("popup").style.display = "none";
+        }
+
+        async function fetchInitialLinks() {
+            const res = await fetch("/get_urls");
+            const data = await res.json();
+            allLinks = data.urls || [];
+            currentPage = 1;
+            updateReferenceHeader();
+            renderLinks();
+        }
+
+        function updateReferenceHeader() {
+            const header = document.getElementById("referenceHeader");
+            const count = allLinks.length;
+            header.innerText = `🔗 References (${count} web page${count !== 1 ? "s" : ""})`;
+        }
+
+        function renderLinks() {
+            const container = document.getElementById('scrapedLinks');
+            container.innerHTML = "";
+            const start = (currentPage - 1) * pageSize;
+            const end = start + pageSize;
+            const pageLinks = allLinks.slice(start, end);
+            pageLinks.forEach(link => {
+                container.innerHTML += `<div><a href="${link}" target="_blank">${link}</a></div>`;
+            });
+            renderPagination();
+        }
+
+        function renderPagination() {
+            const totalPages = Math.ceil(allLinks.length / pageSize);
+            const pagination = document.getElementById("pagination");
+            pagination.innerHTML = "";
+
+            if (totalPages <= 1) return;
+
+            const backBtn = document.createElement("button");
+            backBtn.textContent = "< Back";
+            backBtn.disabled = currentPage === 1;
+            backBtn.onclick = () => {
+                if (currentPage > 1) {
+                    currentPage--;
+                    renderLinks();
+                }
+            };
+
+            const nextBtn = document.createElement("button");
+            nextBtn.textContent = "Next >";
+            nextBtn.disabled = currentPage === totalPages;
+            nextBtn.onclick = () => {
+                if (currentPage < totalPages) {
+                    currentPage++;
+                    renderLinks();
+                }
+            };
+
+            pagination.appendChild(backBtn);
+            pagination.appendChild(nextBtn);
+        }
+
         async function ask() {
-            const question = document.getElementById('questionInput').value;
-            if (!question.trim()) return;
+            const questionInput = document.getElementById('questionInput');
+            const question = questionInput.value.trim();
+            if (!question) return;
+
+            // Clear input box after asking
+            questionInput.value = "";
 
             const userBox = document.createElement('div');
             userBox.className = 'user-entry';
             userBox.innerText = '🧑 ' + question;
-            document.getElementById('answers').appendChild(userBox);
 
             const botBox = document.createElement('div');
             botBox.className = 'bot-entry';
             botBox.innerText = '🤖 ...';
-            document.getElementById('answers').appendChild(botBox);
+
+            const answersContainer = document.getElementById('answers');
+
+            // Insert at the top
+            answersContainer.prepend(botBox);
+            answersContainer.prepend(userBox);
+
+            // Trim to last 3 pairs (6 elements max)
+            while (answersContainer.childNodes.length > 6) {
+                answersContainer.removeChild(answersContainer.lastChild);
+            }
 
             const res = await fetch("/ask", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ question })
             });
+
             const data = await res.json();
             botBox.innerText = '🤖 ' + data.answer;
         }
@@ -147,14 +188,6 @@
                 event.preventDefault();
                 ask();
             }
-        }
-
-        function renderLinks(links) {
-            const container = document.getElementById('scrapedLinks');
-            container.innerHTML = "";
-            links.forEach(link => {
-                container.innerHTML += `<div><a href="${link}" target="_blank">${link}</a></div>`;
-            });
         }
 
         async function updateDropdown() {
@@ -172,7 +205,10 @@
             graphDiv.innerHTML = `<iframe src="/static/graphs/${new URL(url).hostname}.json" width="100%" height="400px"></iframe>`;
         }
 
-        window.onload = updateDropdown;
+        window.onload = () => {
+            fetchInitialLinks();
+            updateDropdown();
+        };
     </script>
 </body>
 

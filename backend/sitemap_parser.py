@@ -40,6 +40,23 @@ def parse_sitemap(url):
     else:
         return tree
 
+def extract_final_urls(url):
+    tree = parse_sitemap(url)
+    final_urls = []
+
+    if isinstance(tree, dict):
+        for key, value in tree.items():
+            if key == "_final_urls" and isinstance(value, list):
+                final_urls.extend(value)
+            elif isinstance(value, dict):
+                final_urls.extend(extract_final_urls(value))
+            elif isinstance(value, list):
+                final_urls.extend([v for v in value if not v.endswith('.xml')])
+    elif isinstance(tree, list):
+        final_urls.extend([v for v in tree if not v.endswith('.xml')])
+
+    return final_urls
+
 def tree_to_edges(tree, parent=None):
     edges = []
     if isinstance(tree, list):
