@@ -1,14 +1,31 @@
 # backend/sitemap_parser.py
 from bs4 import BeautifulSoup
 import requests
-from urllib.parse import urlparse
+from urllib.parse import urlparse, urlunparse
 import networkx as nx
 from pyvis.network import Network
 import json
 
+## Parser
 HEADERS = {"User-Agent": "Mozilla/5.0"}
 
-def fetch_sitemap(url):
+def normalize_url(url: str) -> str:
+    url = url.lower().strip() # Remove leading/trailing whitespace and convert to lowercase
+    if not url.startswith("http"):
+        url = "https://" + url
+    
+    if url.startswith("https://") and not url.startswith("https://www."):
+        url = url.replace("https://", "https://www.", 1)
+    elif not url.startswith("https://www."):
+        url = "https://www." + url
+    
+    parsed = urlparse(url)
+
+    # Normalize to scheme + netloc only (strip path, params, query, fragment)
+    normalized_url = urlunparse((parsed.scheme, parsed.netloc, '', '', '', ''))
+    return normalized_url
+
+def fetch_sitemap(url): # Fetch each xml sitemap in one layer.
     try:
         response = requests.get(url, headers=HEADERS, timeout=5)
         response.raise_for_status()
@@ -18,11 +35,11 @@ def fetch_sitemap(url):
         print(f"Error: {e}")
         return []
 
-def parse_sitemap(url):
+def parse_sitemap(url): # Parse the sitemap and return a dictionary of URLs. Applies fetch_sitemap to each xml sitemap layer by layer.
     locs = fetch_sitemap(url)
     if not locs:
-        return {}
-
+        return {url: []}
+    
     tree = {}
     urls = []
 
@@ -38,25 +55,32 @@ def parse_sitemap(url):
     elif urls:
         return urls
     else:
-        return tree
+        return {url: tree}
 
-def extract_final_urls(url):
+def extract_final_urls(url): # List all URLs in the sitemap.
+    
+    url = normalize_url(url)
+    final_urls = [url]
+    if not url.endswith('/sitemap.xml'):
+        url += '/sitemap.xml'
     tree = parse_sitemap(url)
-    final_urls = []
+    
+    def _walk_tree(node):
+        if isinstance(node, dict):
+            for key, value in node.items():
+                if key == "_final_urls" and isinstance(value, list):
+                    final_urls.extend(value)
+                else:
+                    _walk_tree(value)
+        elif isinstance(node, list):
+            final_urls.extend([v for v in node if not v.endswith('.xml')])
 
-    if isinstance(tree, dict):
-        for key, value in tree.items():
-            if key == "_final_urls" and isinstance(value, list):
-                final_urls.extend(value)
-            elif isinstance(value, dict):
-                final_urls.extend(extract_final_urls(value))
-            elif isinstance(value, list):
-                final_urls.extend([v for v in value if not v.endswith('.xml')])
-    elif isinstance(tree, list):
-        final_urls.extend([v for v in tree if not v.endswith('.xml')])
+    _walk_tree(tree)
 
     return final_urls
 
+## Visualization
+# Convert the tree structure to edges for visualization
 def tree_to_edges(tree, parent=None):
     edges = []
     if isinstance(tree, list):
@@ -70,7 +94,7 @@ def tree_to_edges(tree, parent=None):
     return edges
 
 def generate_graph(sitemap_url, output_file="sitemap_network.html", json_filename=None):
-    tree = {sitemap_url: parse_sitemap(sitemap_url)}
+    tree = parse_sitemap(sitemap_url)
 
     # Default name if not provided
     if json_filename is None:
@@ -158,5 +182,5 @@ def generate_graph(sitemap_url, output_file="sitemap_network.html", json_filenam
     # Save it back
     with open(output_file, "w", encoding="utf-8") as f:
         f.write(html)
-
+    print(f"Output files successfully generated: {output_file} and {json_filename}")
     return output_file

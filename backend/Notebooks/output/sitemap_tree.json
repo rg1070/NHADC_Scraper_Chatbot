@@ -1,0 +1,43 @@
+{
+  "https://northlightai.com/sitemap.xml": {
+    "https://northlightai.com/sitemap.website.xml": [
+      "https://northlightai.com/publications",
+      "https://northlightai.com/faq",
+      "https://northlightai.com/our-customers-1",
+      "https://northlightai.com/",
+      "https://northlightai.com/ai-strategic-consulting",
+      "https://northlightai.com/ai-innovation-lab",
+      "https://northlightai.com/our-team",
+      "https://northlightai.com/higher-education",
+      "https://northlightai.com/product-development",
+      "https://northlightai.com/north-light-values",
+      "https://northlightai.com/ai-training-%26-development-1",
+      "https://northlightai.com/technical-partners",
+      "https://northlightai.com/ai-literacy-sponsorships",
+      "https://northlightai.com/m/login",
+      "https://northlightai.com/m/reset",
+      "https://northlightai.com/m/create",
+      "https://northlightai.com/m/create-account"
+    ],
+    "https://northlightai.com/sitemap.blog.xml": [
+      "https://northlightai.com/publications/f/north-light-ai-partners-with-unh-to-launch-affordable-ai-training",
+      "https://northlightai.com/publications/f/openais-new-o1-strawberry-model-released",
+      "https://northlightai.com/publications/f/north-light-ai-and-buzzy-join-forces-in-ai-education",
+      "https://northlightai.com/publications/f/microsoft-linkedin-and-the-year-of-ai",
+      "https://northlightai.com/publications/f/chatgpt-4o-updates-from-openai",
+      "https://northlightai.com/publications/f/this-week-in-ai-51324",
+      "https://northlightai.com/publications/f/nvidia-rendered-the-radioactive-star",
+      "https://northlightai.com/publications/f/secret-aigent-man",
+      "https://northlightai.com/publications/f/co-founder-interviewed-by-pictory-ai",
+      "https://northlightai.com/publications/f/prompt-engineering---a-baseline",
+      "https://northlightai.com/publications/f/what-is-a-token-in-chatgpt",
+      "https://northlightai.com/publications/f/large-language-models-llms-a-brief-overview",
+      "https://northlightai.com/publications/f/google-gemini",
+      "https://northlightai.com/publications/f/chef-ai",
+      "https://northlightai.com/publications/f/why-ai"
+    ],
+    "https://northlightai.com/sitemap.ols.xml": [
+      "https://northlightai.com"
+    ]
+  }
+}

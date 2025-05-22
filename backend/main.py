@@ -10,7 +10,7 @@ from fastapi.responses import FileResponse
 
 
 from backend.scraper import scrape
-from backend.sitemap_parser import extract_final_urls
+from backend.sitemap_parser_visualizer import extract_final_urls
 from backend.supabase_utils import store_chunks, query_top_chunks, supabase, TABLE
 from backend.aiagent import chat_model, chunk_text, embed_texts
 

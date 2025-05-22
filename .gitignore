@@ -10,7 +10,8 @@ __pycache__/
 
 # Environment Variables
 backend/.env
-backend/Notebooks/
+.env
+
 
 # VS Code settings
 .vscode/
@@ -21,3 +22,4 @@ Thumbs.db
 
 # Logs
 *.log
+.env
